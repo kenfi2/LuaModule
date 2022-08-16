@@ -23,13 +23,13 @@ private:
 
 	uint32_t eventId = 0;
 
-	friend SchedulerTaskPtr createSchedulerTask(uint32_t, std::function<void(void)>);
+	friend SchedulerTask* createSchedulerTask(uint32_t, std::function<void(void)>);
 };
 
-SchedulerTaskPtr createSchedulerTask(uint32_t delay, std::function<void(void)> f);
+SchedulerTask* createSchedulerTask(uint32_t delay, std::function<void(void)> f);
 
 struct TaskComparator {
-	bool operator()(const SchedulerTaskPtr lhs, const SchedulerTaskPtr rhs) const {
+	bool operator()(const SchedulerTask* lhs, const SchedulerTask* rhs) const {
 		return lhs->getCycle() > rhs->getCycle();
 	}
 };
@@ -39,19 +39,17 @@ class Scheduler : public Thread<Scheduler>
 public:
 	void main();
 
-	uint32_t addEvent(SchedulerTaskPtr task);
+	uint32_t addEvent(uint32_t delay, std::function<void(void)> f);
+	uint32_t addEventPointer(SchedulerTask* task);
 	bool stopEvent(uint32_t eventId);
 
 	void shutdown();
 
 private:
 	uint32_t m_lastEventId{ 0 };
-	std::priority_queue<SchedulerTaskPtr, std::deque<SchedulerTaskPtr>, TaskComparator> m_eventList;
+	std::priority_queue<SchedulerTask*, std::deque<SchedulerTask*>, TaskComparator> m_eventList;
 	std::unordered_set<uint32_t> m_eventIds;
 };
-
-TaskPtr createTask(std::function<void(void)> f);
-TaskPtr createExpirationTask(uint32_t expiration, std::function<void(void)> f);
 
 extern Scheduler g_scheduler;
 

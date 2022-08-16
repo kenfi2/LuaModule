@@ -19,7 +19,7 @@ void Scheduler::main()
 		}
 
 		if (ret == std::cv_status::timeout && !m_eventList.empty()) {
-			SchedulerTaskPtr task = m_eventList.top();
+			SchedulerTask* task = m_eventList.top();
 			m_eventList.pop();
 
 			auto it = m_eventIds.find(task->getEventId());
@@ -32,7 +32,7 @@ void Scheduler::main()
 			taskLockUnique.unlock();
 
 			task->setDontExpire();
-			g_dispatcher.addTask(task, true);
+			g_dispatcher.addTaskPointer(task, true);
 		}
 		else {
 			taskLockUnique.unlock();
@@ -40,7 +40,12 @@ void Scheduler::main()
 	}
 }
 
-uint32_t Scheduler::addEvent(SchedulerTaskPtr task)
+uint32_t Scheduler::addEvent(uint32_t delay, std::function<void(void)> f)
+{
+	return addEventPointer(createSchedulerTask(delay, std::move(f)));
+}
+
+uint32_t Scheduler::addEventPointer(SchedulerTask* task)
 {
 	bool do_signal = false;
 
@@ -108,7 +113,7 @@ void Scheduler::shutdown()
 	m_taskSignal.notify_one();
 }
 
-SchedulerTaskPtr createSchedulerTask(uint32_t delay, std::function<void(void)> f)
+SchedulerTask* createSchedulerTask(uint32_t delay, std::function<void(void)> f)
 {
-	return SchedulerTaskPtr(new SchedulerTask(delay, std::move(f)));
+	return new SchedulerTask(delay, std::move(f));
 }

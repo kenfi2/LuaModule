@@ -25,9 +25,9 @@ int main(int argc, char* argv[])
 	g_dispatcher.start();
 	g_scheduler.start();
 
-	g_dispatcher.addTask(createTask(std::bind(mainLoader, argc, argv)));
+	g_dispatcher.addTask(std::bind(mainLoader, argc, argv));
 
-	g_loaderSignal.wait(g_loaderUniqueLock); // wait for mainLoader signal
+	g_loaderSignal.wait(g_loaderUniqueLock); // lock current thread until signaled
 
 	g_scheduler.join();
 	g_dispatcher.join();

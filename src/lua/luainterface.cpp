@@ -35,12 +35,6 @@ bool LuaInterface::init()
 	luabinder::bindMethodFunction("g_scheduler", "addEvent", &Scheduler::addEvent, &g_scheduler);
 	luabinder::bindMethodFunction("g_scheduler", "shutdown", &Scheduler::shutdown, &g_scheduler);
 
-	registerClass("Task", "LuaObject");
-	luabinder::bindFunction("createTask", [](std::function<void(void)> f) { return createTask(f); });
-
-	registerClass("SchedulerTask", "Task");
-	luabinder::bindFunction("createSchedulerTask", [](uint32_t timer, std::function<void(void)> f) { return createSchedulerTask(timer, f); });
-
 	luabinder::bindFunction("getFileTime", [](std::string file) { return getFileTime(file); });
 	luabinder::bindFunction("getFiles", [](std::string path, std::string extension) { return getFiles(path, extension); });
 

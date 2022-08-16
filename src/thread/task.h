@@ -4,9 +4,7 @@
 const int DISPATCHER_TASK_EXPIRATION = 2000;
 const auto SYSTEM_TIME_ZERO = std::chrono::system_clock::time_point(std::chrono::milliseconds(0));
 
-#include <lua/luaobject.h>
-
-class Task : public LuaObject
+class Task
 {
 public:
 	// DO NOT allocate this class on the stack

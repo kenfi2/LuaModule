@@ -137,7 +137,7 @@ function init()
       end
     end
 
-    g_scheduler.addEvent(createSchedulerTask(5000, checkModules))
+    g_scheduler.addEvent(5000, checkModules)
   end
 
   checkModules()
@@ -150,4 +150,4 @@ function main()
   end
 end
 
-g_dispatcher.addTask(createTask(main))
+g_dispatcher.addTask(main)

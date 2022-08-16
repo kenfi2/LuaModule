@@ -2,14 +2,14 @@
 
 #include "dispatcher.h"
 
-TaskPtr createTask(std::function<void(void)> f)
+Task* createTask(std::function<void(void)> f)
 {
-	return TaskPtr(new Task(std::move(f)));
+	return new Task(std::move(f));
 }
 
-TaskPtr createTask(uint32_t expiration, std::function<void(void)> f)
+Task* createTask(uint32_t expiration, std::function<void(void)> f)
 {
-	return TaskPtr(new Task(expiration, std::move(f)));
+	return new Task(expiration, std::move(f));
 }
 
 void Dispatcher::main()
@@ -24,13 +24,15 @@ void Dispatcher::main()
 		}
 
 		if (!m_taskList.empty()) {
-			TaskPtr task = m_taskList.front();
+			Task* task = m_taskList.front();
 			m_taskList.pop_front();
 			taskLockUnique.unlock();
 
 			if (!task->hasExpired()) {
 				(*task)();
 			}
+
+			delete task;
 		}
 		else {
 			taskLockUnique.unlock();
@@ -38,7 +40,17 @@ void Dispatcher::main()
 	}
 }
 
-void Dispatcher::addTask(TaskPtr task, bool push_front/*= false*/)
+void Dispatcher::addExpirationTask(uint32_t expiration, std::function<void(void)> f, bool push_front)
+{
+	return addTaskPointer(createTask(expiration, std::move(f)), push_front);
+}
+
+void Dispatcher::addTask(std::function<void(void)> f, bool push_front/*= false*/)
+{
+	return addTaskPointer(createTask(std::move(f)), push_front);
+}
+
+void Dispatcher::addTaskPointer(Task* task, bool push_front)
 {
 	bool do_signal = false;
 
@@ -54,6 +66,9 @@ void Dispatcher::addTask(TaskPtr task, bool push_front/*= false*/)
 			m_taskList.push_back(task);
 		}
 	}
+	else {
+		delete task;
+	}
 
 	m_taskLock.unlock();
 
@@ -64,7 +79,7 @@ void Dispatcher::addTask(TaskPtr task, bool push_front/*= false*/)
 
 void Dispatcher::shutdown()
 {
-	const TaskPtr& task = createTask([this]() {
+	Task* task = createTask([this]() {
 		setState(THREAD_STATE_TERMINATED);
 		m_taskSignal.notify_one();
 	});

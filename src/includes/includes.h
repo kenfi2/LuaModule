@@ -11,7 +11,3 @@
 
 class LuaObject;
 using LuaObjectPtr = std::shared_ptr<LuaObject>;
-class Task;
-using TaskPtr = std::shared_ptr<Task>;
-class SchedulerTask;
-using SchedulerTaskPtr = std::shared_ptr<SchedulerTask>;
