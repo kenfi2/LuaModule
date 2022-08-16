@@ -6,6 +6,7 @@
 #include <thread/thread.h>
 
 // include after include luainterface
+#include "luaobject.h"
 #include "luavaluecasts.h"
 #include "luabinder.h"
 
@@ -25,19 +26,7 @@ bool LuaInterface::init()
 		return false;
 
 	luaL_openlibs(m_luaState);
-
-	// register functions
-	registerGlobalClass("g_dispatcher");
-	luabinder::bindMethodFunction("g_dispatcher", "addTask", &Dispatcher::addTask, &g_dispatcher);
-	luabinder::bindMethodFunction("g_dispatcher", "shutdown", &Dispatcher::shutdown, &g_dispatcher);
-
-	registerGlobalClass("g_scheduler");
-	luabinder::bindMethodFunction("g_scheduler", "addEvent", &Scheduler::addEvent, &g_scheduler);
-	luabinder::bindMethodFunction("g_scheduler", "shutdown", &Scheduler::shutdown, &g_scheduler);
-
-	luabinder::bindFunction("getFileTime", [](std::string file) { return getFileTime(file); });
-	luabinder::bindFunction("getFiles", [](std::string path, std::string extension) { return getFiles(path, extension); });
-
+	registerFunctions();
 	return true;
 }
 
@@ -222,6 +211,21 @@ void LuaInterface::registerGlobalClass(const std::string& className)
 		lua_setglobal(m_luaState, className.c_str());
 	}
 	lua_pop(m_luaState, 1);
+}
+
+void LuaInterface::registerFunctions()
+{
+	// register functions
+	registerGlobalClass("g_dispatcher");
+	luabinder::bindMethodFunction("g_dispatcher", "addTask", &Dispatcher::addTask, &g_dispatcher);
+	luabinder::bindMethodFunction("g_dispatcher", "shutdown", &Dispatcher::shutdown, &g_dispatcher);
+
+	registerGlobalClass("g_scheduler");
+	luabinder::bindMethodFunction("g_scheduler", "addEvent", &Scheduler::addEvent, &g_scheduler);
+	luabinder::bindMethodFunction("g_scheduler", "shutdown", &Scheduler::shutdown, &g_scheduler);
+
+	luabinder::bindFunction("getFileTime", [](std::string file) { return getFileTime(file); });
+	luabinder::bindFunction("getFiles", [](std::string path, std::string extension) { return getFiles(path, extension); });
 }
 
 int LuaInterface::luaObjectGetEvent(LuaInterface* lua)
