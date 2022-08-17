@@ -1,3 +1,16 @@
+--[[
+  C++ Functions
+
+  g_dispatcher.addTask(callback)
+  g_dispatcher.shutdown() -- stop dispatcher thread
+
+  g_scheduler.addEvent(delay, callback)
+  g_scheduler.shutdown() -- stop scheduler thread
+
+  getFileTime()
+  getFiles()
+]]
+
 Module = { isModule = true }
 
 function Module:checkReload()
@@ -142,12 +155,3 @@ function init()
 
   checkModules()
 end
-
-function main()
-  local status, value = pcall(init)
-  if not status then
-    print(value)
-  end
-end
-
-g_dispatcher.addTask(main)

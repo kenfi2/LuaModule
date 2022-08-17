@@ -1,6 +1,5 @@
 namespace luabinder
 {
-	
 	template<typename T> struct remove_const_ref { typedef typename std::remove_const<typename std::remove_reference<T>::type>::type type; };
 
 	template<typename Lambda>

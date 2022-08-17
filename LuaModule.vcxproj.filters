@@ -28,6 +28,12 @@
     <ClCompile Include="src\lua\luaobject.cpp">
       <Filter>lua</Filter>
     </ClCompile>
+    <ClCompile Include="src\lua\luaexception.cpp">
+      <Filter>lua</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lua\luavaluecasts.cpp">
+      <Filter>lua</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\thread\dispatcher.h">
@@ -62,6 +68,9 @@
     </ClInclude>
     <ClInclude Include="src\thread\thread.h">
       <Filter>thread</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lua\luaexception.h">
+      <Filter>lua</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

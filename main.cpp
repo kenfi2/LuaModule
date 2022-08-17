@@ -42,7 +42,6 @@ void mainLoader(int argc, char* argv[])
 	}
 
 	if (!g_lua.loadFile("project/main.lua")) {
-		loaderError("main.lua not found");
 		return;
 	}
 

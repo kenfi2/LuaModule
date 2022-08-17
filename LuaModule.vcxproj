@@ -146,8 +146,10 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\includes\tools.cpp" />
+    <ClCompile Include="src\lua\luaexception.cpp" />
     <ClCompile Include="src\lua\luainterface.cpp" />
     <ClCompile Include="src\lua\luaobject.cpp" />
+    <ClCompile Include="src\lua\luavaluecasts.cpp" />
     <ClCompile Include="src\thread\dispatcher.cpp" />
     <ClCompile Include="src\thread\scheduler.cpp" />
   </ItemGroup>
@@ -155,6 +157,7 @@
     <ClInclude Include="src\includes\includes.h" />
     <ClInclude Include="src\includes\tools.h" />
     <ClInclude Include="src\lua\luabinder.h" />
+    <ClInclude Include="src\lua\luaexception.h" />
     <ClInclude Include="src\lua\luainterface.h" />
     <ClInclude Include="src\lua\luaobject.h" />
     <ClInclude Include="src\lua\luavaluecasts.h" />

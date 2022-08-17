@@ -8,6 +8,7 @@
 #include <utility>
 #include <queue>
 #include <unordered_set>
+#include <sstream>
 
 class LuaObject;
 using LuaObjectPtr = std::shared_ptr<LuaObject>;

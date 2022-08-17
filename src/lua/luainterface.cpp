@@ -7,7 +7,6 @@
 
 // include after include luainterface
 #include "luaobject.h"
-#include "luavaluecasts.h"
 #include "luabinder.h"
 
 LuaInterface g_lua;
@@ -52,43 +51,41 @@ bool LuaInterface::loadFile(const std::string& path)
 		return false;
 	}
 
-	ret = protectedCall(m_luaState, 0, 0);
+	ret = protectedCall(0, 0);
 	if (ret != 0) {
-		std::cout << getString(m_luaState, -1) << std::endl;
-		resetScript();
-		return false;
+		reportError(nullptr, polymorphic_pop<std::string>(m_luaState));
 	}
 
 	resetScript();
-	return true;
+	return ret == 0;
 }
 
-int LuaInterface::protectedCall(lua_State* L, int nargs, int nresults)
+int LuaInterface::protectedCall(int nargs, int nresults)
 {
-	int error_index = lua_gettop(L) - nargs;
-	lua_pushcfunction(L, luaErrorHandler);
-	lua_insert(L, error_index);
+	int error_index = lua_gettop(m_luaState) - nargs;
+	lua_pushcfunction(m_luaState, luaErrorHandler);
+	lua_insert(m_luaState, error_index);
 
-	int ret = lua_pcall(L, nargs, nresults, error_index);
-	lua_remove(L, error_index);
+	int ret = lua_pcall(m_luaState, nargs, nresults, error_index);
+	lua_remove(m_luaState, error_index);
 	return ret;
 }
 
 int LuaInterface::luaErrorHandler(lua_State* L)
 {
-	const std::string& errorMessage = getString(L, -1);
-	lua_pushlstring(L, errorMessage.c_str(), errorMessage.length());
+	push_lua_value(L, polymorphic_pop<std::string>(L));
 	return 1;
 }
 
-std::string LuaInterface::getString(lua_State* L, int index)
+void LuaInterface::reportError(const char* function, const std::string& error_desc, bool stack_trace)
 {
-	size_t len;
-	const char* c_str = lua_tolstring(L, index, &len);
-	if (!c_str || len == 0) {
-		return std::string();
+	std::cout << std::endl << "Lua Error: ";
+
+	if (function) {
+		std::cout << function << "(). ";
 	}
-	return std::string(c_str, len);
+
+	std::cout << getStackTrace(error_desc, 0) << std::endl;
 }
 
 void LuaInterface::getOrCreateTable(const std::string& name)
@@ -161,8 +158,12 @@ int LuaInterface::luaCppFunctionCallback(lua_State* L)
 		numRets = (*(funcPtr->get()))(&g_lua);
 		assert(numRets == lua_gettop(L));
 	}
-	catch (const std::invalid_argument&) {
-		luaL_error(L, "Invalid argument");
+	catch (const LuaException& e) {
+		std::ostringstream error;
+		error << "C++ call failed: " << e.what();
+		push_lua_value(L, error.str());
+		lua_error(L);
+		numRets = -1;
 	}
 	return numRets;
 }
@@ -235,7 +236,7 @@ int LuaInterface::luaObjectGetEvent(LuaInterface* lua)
 	// stack: obj, key
 	LuaObjectPtr* objPtr = static_cast<LuaObjectPtr*>(lua_touserdata(L, -2));
 	assert(objPtr);
-	std::string key = getString(L, -1);
+	std::string key = lua_pull_value<std::string>(L, -1);
 	LuaObjectPtr obj = *objPtr;
 	assert(obj);
 
@@ -309,4 +310,25 @@ int LuaInterface::luaObjectCollectEvent(lua_State* L)
 	// resets pointer to decrease object use count
 	objPtr->reset();
 	return 0;
+}
+
+std::string LuaInterface::getStackTrace(const std::string& error_desc, int level)
+{
+	lua_getglobal(m_luaState, "debug");
+	if (!lua_istable(m_luaState, -1)) {
+		lua_pop(m_luaState, 1);
+		return error_desc;
+	}
+
+	lua_getfield(m_luaState, -1, "traceback");
+	if (!lua_isfunction(m_luaState, -1)) {
+		lua_pop(m_luaState, 2);
+		return error_desc;
+	}
+
+	push_lua_value(m_luaState, error_desc);
+	push_lua_value(m_luaState, level);
+	lua_call(m_luaState, 2, 1);
+
+	return polymorphic_pop<std::string>(m_luaState);
 }

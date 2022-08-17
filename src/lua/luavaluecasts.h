@@ -4,6 +4,11 @@
 template<typename T, typename... Args>
 int polymorphic_push(lua_State* L, const T& v, const Args&... args);
 
+template<typename T>
+T polymorphic_pop(lua_State* L);
+
+std::string typename_lua(lua_State* L, int index = -1);
+
 class luafunction_holder {
 public:
 	luafunction_holder() = delete;
@@ -17,33 +22,10 @@ private:
 	int funcRef;
 };
 
-bool pull_lua_value(lua_State* L, int& ref, int index = -1)
-{
-	ref = static_cast<int>(lua_tointeger(L, index));
-	if (ref == 0 && !lua_isnumber(L, index) && !lua_isnil(L, index))
-		return false;
-	return true;
-}
-
-bool pull_lua_value(lua_State* L, uint32_t& ref, int index = -1)
-{
-	ref = static_cast<uint32_t>(lua_tonumber(L, index));
-	if (ref == 0 && !lua_isnumber(L, index) && !lua_isnil(L, index))
-		return false;
-	return true;
-}
-
-bool pull_lua_value(lua_State* L, std::string& ref, int index = -1)
-{
-	ref = LuaInterface::getString(L, index);
-	return true;
-}
-
-bool pull_lua_value(lua_State* L, bool& ref, int index = -1)
-{
-	ref = lua_toboolean(L, index) != 0;
-	return true;
-}
+bool pull_lua_value(lua_State* L, int& ref, int index = -1);
+bool pull_lua_value(lua_State* L, uint32_t& ref, int index = -1);
+bool pull_lua_value(lua_State* L, std::string& ref, int index = -1);
+bool pull_lua_value(lua_State* L, bool& ref, int index = -1);
 
 template<class T>
 bool pull_lua_value(lua_State* L, std::shared_ptr<T>& t, int index = -1)
@@ -60,8 +42,7 @@ template<typename... Args>
 bool pull_lua_value(lua_State* L, std::function<void(Args...)>& func, int index = -1)
 {
 	if (!lua_isfunction(L, index)) {
-		std::cout << "The paramater need be a function" << std::endl;
-		return false;
+		throw LuaBadValueCastException(typename_lua(L, index), "function");
 	}
 
 	lua_pushvalue(L, -1);
@@ -73,59 +54,40 @@ bool pull_lua_value(lua_State* L, std::function<void(Args...)>& func, int index 
 			funcHolder->push();
 			if (lua_isfunction(L, -1)) {
 				int numArgs = polymorphic_push(L, args...);
-				int rets = LuaInterface::protectedCall(L, numArgs, 0);
+
+				int rets = g_lua.protectedCall(numArgs, 0);
+				if (rets != 0) {
+					g_lua.reportError(nullptr, polymorphic_pop<std::string>(L));
+				}
+
 				lua_pop(L, numArgs);
 			}
 			else {
-				throw std::invalid_argument("Attempt to call a expired function");
+				throw LuaException("Attempt to call a expired function");
 			}
 		}
-		catch (const std::exception&) {
-			std::cout << "lua function callback failed" << std::endl;
+		catch (const LuaException& e) {
+			std::cout << "lua function callback failed: " << e.what() << std::endl;
 		}
 	};
 	return true;
 }
 
-int push_lua_value(lua_State* L, int value)
-{
-	lua_pushinteger(L, value);
-	return 1;
-}
+int push_lua_value(lua_State* L, int value);
+int push_lua_value(lua_State* L, double value);
+int push_lua_value(lua_State* L, long value);
+int push_lua_value(lua_State* L, unsigned long value);
 
-int push_lua_value(lua_State* L, double value)
-{
-	lua_pushnumber(L, value);
-	return 1;
-}
+int push_lua_value(lua_State* L, int8_t value);
+int push_lua_value(lua_State* L, uint8_t value);
+int push_lua_value(lua_State* L, int16_t value);
+int push_lua_value(lua_State* L, uint16_t value);
+int push_lua_value(lua_State* L, uint32_t value);
+int push_lua_value(lua_State* L, int64_t value);
+int push_lua_value(lua_State* L, uint64_t value);
 
-int push_lua_value(lua_State* L, long value) { return push_lua_value(L, (double)value); }
-int push_lua_value(lua_State* L, unsigned long value) { return push_lua_value(L, (double)value); }
-
-int push_lua_value(lua_State* L, int8_t value) { return push_lua_value(L, (int)value); }
-int push_lua_value(lua_State* L, uint8_t value) { return push_lua_value(L, (int)value); }
-int push_lua_value(lua_State* L, int16_t value) { return push_lua_value(L, (int)value); }
-int push_lua_value(lua_State* L, uint16_t value) { return push_lua_value(L, (int)value); }
-int push_lua_value(lua_State* L, uint32_t value) { return push_lua_value(L, (double)value); }
-int push_lua_value(lua_State* L, int64_t value) { return push_lua_value(L, (double)value); }
-int push_lua_value(lua_State* L, uint64_t value) { return push_lua_value(L, (double)value); }
-
-int push_lua_value(lua_State* L, const std::string& value)
-{
-	lua_pushlstring(L, value.c_str(), value.length());
-	return 1;
-}
-
-int push_lua_value(lua_State* L, const LuaObjectPtr& t)
-{
-	if (t) {
-		g_lua.pushObject(t);
-	}
-	else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
+int push_lua_value(lua_State* L, const std::string& value);
+int push_lua_value(lua_State* L, const LuaObjectPtr& t);
 
 template<typename T>
 int push_lua_value(lua_State* L, const std::vector<T>& vector);
@@ -135,7 +97,7 @@ T lua_pull_value(lua_State* L, int index = -1)
 {
 	T o;
 	if (!pull_lua_value(L, o, index))
-		throw std::invalid_argument("luabinder::lua_pull_value invalid value in stack " + index);
+		throw LuaBadValueCastException(typename_lua(L, index), demangle_type<T>());
 	return o;
 }
 
@@ -147,7 +109,7 @@ T polymorphic_pop(lua_State* L)
 	return v;
 }
 
-int polymorphic_push(lua_State*) { return 0; }
+int polymorphic_push(lua_State*);
 
 template<typename T, typename... Args>
 int polymorphic_push(lua_State* L, const T& v, const Args&... args)
